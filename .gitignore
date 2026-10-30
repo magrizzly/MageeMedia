@@ -1,0 +1,21 @@
+# Environment & Secrets (Never commit tokens or passwords)
+.env
+*.reg
+Preferences.xml
+cli_pw
+pihole.toml
+config.ini
+auth
+
+# Databases & Local Backups
+*.db
+*.db-shm
+*.db-wal
+.local_backup/
+Migration_Backup/
+
+# OS & Editor files
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp

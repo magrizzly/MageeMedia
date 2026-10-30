@@ -1,0 +1,24 @@
+# =============================================================================
+# Append these share definitions to /etc/samba/smb.conf
+# Access from Windows at \\192.168.1.237\Media and \\192.168.1.237\Vault
+# =============================================================================
+
+[Media]
+   comment = MageeMedia 28TB MergerFS Pool (Films, TV, Anime, Torrents)
+   path = /mnt/media/data
+   browseable = yes
+   read only = no
+   guest ok = no
+   create mask = 0664
+   directory mask = 0775
+   force user = magee
+
+[Vault]
+   comment = MageeMedia 3TB Btrfs RAID 1 Vault (Photos, Music, Audio, Backups)
+   path = /mnt/vault
+   browseable = yes
+   read only = no
+   guest ok = no
+   create mask = 0664
+   directory mask = 0775
+   force user = magee

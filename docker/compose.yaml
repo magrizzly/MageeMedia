@@ -1,0 +1,259 @@
+name: mageemedia
+
+services:
+  # ===========================================================================
+  # MANAGEMENT UI
+  # ===========================================================================
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge
+    ports:
+      - "5001:5001"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${APPDATA_DIR:-/opt/docker/appdata}/dockge:/app/data
+      - /opt/docker:/opt/docker
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/docker
+    restart: unless-stopped
+
+  # ===========================================================================
+  # MEDIA SERVERS & ANALYTICS (PLEX + JELLYFIN SIDE-BY-SIDE)
+  # ===========================================================================
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+      - VERSION=docker
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/plex:/config
+      - ${MEDIA_POOL:-/mnt/media}/data/media:/data/media     # Films, TV, Anime (28 TB MergerFS Pool)
+      - ${VAULT_POOL:-/mnt/vault}/Media:/data/vault          # Photos, Music, Audio, Custom Art (3 TB Btrfs RAID 1)
+      - /dev/shm:/transcode                                  # 32 GB RAM Disk Transcoding
+    devices:
+      - /dev/dri:/dev/dri                                    # Intel i7-4790 HD 4600 QuickSync
+    restart: unless-stopped
+
+  jellyfin:
+    image: lscr.io/linuxserver/jellyfin:latest
+    container_name: jellyfin
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "8096:8096"                                          # HTTP Web UI
+      - "8920:8920"                                          # HTTPS Web UI
+      - "7359:7359/udp"                                      # Local LAN Client Auto-Discovery
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/jellyfin:/config
+      - ${MEDIA_POOL:-/mnt/media}/data/media:/data/media     # Shares Films, TV, Anime folders
+      - ${VAULT_POOL:-/mnt/vault}/Media:/data/vault          # Shares Photos, Music, Audio folders
+      - /dev/shm:/transcode                                  # Shares 32 GB RAM Disk Transcoding
+    devices:
+      - /dev/dri:/dev/dri                                    # Shares Intel HD 4600 QuickSync iGPU
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "8181:8181"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/tautulli:/config
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  jellyseerr:
+    image: fallenbagel/jellyseerr:latest
+    container_name: jellyseerr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "5055:5055"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/jellyseerr:/config
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # *ARR MEDIA AUTOMATION & DOWNLOADS
+  # ===========================================================================
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+      - WEBUI_PORT=8080
+    ports:
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/qbittorrent:/config
+      - ${INCOMPLETE_DIR:-/opt/docker/downloads/incomplete}:/incomplete # 1 TB SSD Incomplete Cache
+      - ${MEDIA_POOL:-/mnt/media}/data/torrents:/data/torrents          # 28 TB Pool Completed Torrents
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "9696:9696"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/prowlarr:/config
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "8989:8989"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/sonarr:/config
+      - ${MEDIA_POOL:-/mnt/media}/data:/data                 # Instant hardlinks: /data/torrents -> /data/media/{TV,Anime}
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "7878:7878"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/radarr:/config
+      - ${MEDIA_POOL:-/mnt/media}/data:/data                 # Instant hardlinks: /data/torrents -> /data/media/Films
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "8686:8686"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/lidarr:/config
+      - ${MEDIA_POOL:-/mnt/media}/data/torrents:/data/torrents
+      - ${VAULT_POOL:-/mnt/vault}/Media/Music:/data/vault/Music
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  readarr:
+    image: lscr.io/linuxserver/readarr:develop
+    container_name: readarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "8787:8787"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/readarr:/config
+      - ${MEDIA_POOL:-/mnt/media}/data/torrents:/data/torrents
+      - ${VAULT_POOL:-/mnt/vault}/Media/Audio:/data/vault/Audio
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "6767:6767"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/bazarr:/config
+      - ${MEDIA_POOL:-/mnt/media}/data/media:/data/media
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # NETWORK DNS & AD-BLOCKING (PI-HOLE v6 + UNBOUND)
+  # ===========================================================================
+  pihole:
+    image: pihole/pihole:latest
+    container_name: pihole
+    hostname: MageeMedia
+    depends_on:
+      - unbound
+    environment:
+      - TZ=${TZ:-Europe/London}
+      - FTLCONF_dns_upstreams=172.20.0.2#5335
+      - FTLCONF_dns_listeningMode=ALL
+      - FTLCONF_webserver_port=60080,[::]:60080,60443s,[::]:60443s
+    ports:
+      - "53:53/tcp"
+      - "53:53/udp"
+      - "60080:60080/tcp"
+      - "60443:60443/tcp"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/pihole/etc-pihole:/etc/pihole
+      - ${APPDATA_DIR:-/opt/docker/appdata}/pihole/etc-dnsmasq.d:/etc/dnsmasq.d
+    networks:
+      dns_net:
+        ipv4_address: 172.20.0.3
+    restart: unless-stopped
+
+  unbound:
+    image: mvance/unbound:latest
+    container_name: unbound
+    environment:
+      - TZ=${TZ:-Europe/London}
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/unbound:/opt/unbound/etc/unbound/custom.conf.d:ro
+    networks:
+      dns_net:
+        ipv4_address: 172.20.0.2
+    restart: unless-stopped
+
+networks:
+  media_net:
+    driver: bridge
+  dns_net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24

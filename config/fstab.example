@@ -1,0 +1,21 @@
+# =============================================================================
+# MageeMedia /etc/fstab Additions
+# =============================================================================
+
+# --- Tier 2: 3x 14 TB Toshiba MG07ACA14TE (Data Disks + SnapRAID Parity) ---
+LABEL=disk1    /mnt/disk1    ext4      defaults,noatime,nofail    0 2
+LABEL=disk2    /mnt/disk2    ext4      defaults,noatime,nofail    0 2
+LABEL=parity1  /mnt/parity1  ext4      defaults,noatime,nofail    0 2
+
+# --- Tier 2 Pool: MergerFS (28 TB Usable Pool at /mnt/media) ---
+# cache.files=off is required on the same host if using mmap/direct_io;
+# cache.files=partial + dropcacheonclose=true + category.create=mfs supports hardlinks & *arr atomic moves
+/mnt/disk*     /mnt/media    mergerfs  defaults,nonempty,allow_other,use_ino,cache.files=partial,dropcacheonclose=true,category.create=mfs,moveonenospc=true,minfreespace=50G,fsname=mergerfs  0 0
+
+# --- Tier 3: 3 TB WD + 4 TB Seagate Btrfs RAID 1 Mirror (Vault at /mnt/vault) ---
+# Uncomment after evacuating old NTFS D: & E: drives and running:
+# sudo mkfs.btrfs -L Vault -d raid1 -m raid1 -f /dev/sdX /dev/sdY
+# LABEL=Vault  /mnt/vault    btrfs     defaults,noatime,compress=zstd:3,nofail  0 0
+
+# --- Optional: Old 64 GB Windows C: SSD (Read-Only Fallback) ---
+# LABEL=60GB\x20Sandisk\x20SSD  /mnt/win_c  ntfs3  ro,nofail,uid=1000,gid=1000  0 0
