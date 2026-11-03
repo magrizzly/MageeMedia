@@ -51,3 +51,11 @@ This file provides complete context for AI agents (Antigravity) when opening thi
   * `Music` (`22.32 GB`)
   * `Audio` (`1.26 GB` — Audiobooks)
   * `Custom Art` (`0.58 GB`)
+
+---
+
+## 4. Server Access & Credentials Hint
+* **Host:** `192.168.1.237` (`MageeMedia`)
+* **Default Admin User:** `charlie` (UID `1000:1000`)
+* **Password Hint:** "Gamertag then media"
+* **SSH Key Auth:** Configured from `CHARLIE-PC` (`~/.ssh/id_ed25519.pub`)
