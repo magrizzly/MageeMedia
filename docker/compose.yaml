@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
 
   # ===========================================================================
-  # MEDIA SERVERS & ANALYTICS (PLEX + JELLYFIN SIDE-BY-SIDE)
+  # MEDIA SERVERS, ANALYTICS & REQUESTS (PLEX + JELLYFIN + SEERR + REQUESTRR)
   # ===========================================================================
   plex:
     image: lscr.io/linuxserver/plex:latest
@@ -31,8 +31,8 @@ services:
       - VERSION=docker
     volumes:
       - ${APPDATA_DIR:-/opt/docker/appdata}/plex:/config
-      - ${MEDIA_POOL:-/mnt/media}/data/media:/data/media     # Films, TV, Anime (28 TB MergerFS Pool)
-      - ${VAULT_POOL:-/mnt/vault}/Media:/data/vault          # Photos, Music, Audio, Custom Art (3 TB Btrfs RAID 1)
+      - ${MEDIA_POOL:-/mnt/media}/data/media:/data/media     # Films, TV, Anime, Music, Audio, Custom Art (28 TB Pool)
+      - ${VAULT_POOL:-/mnt/vault}/Media:/data/vault          # Photos (4 TB Btrfs Vault)
       - /dev/shm:/transcode                                  # 32 GB RAM Disk Transcoding
     devices:
       - /dev/dri:/dev/dri                                    # Intel i7-4790 HD 4600 QuickSync
@@ -75,57 +75,184 @@ services:
       - media_net
     restart: unless-stopped
 
-  jellyseerr:
-    image: fallenbagel/jellyseerr:latest
-    container_name: jellyseerr
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    init: true
+    environment:
+      - TZ=${TZ:-Europe/London}
+      - LOG_LEVEL=info
+    ports:
+      - "5055:5055"
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/seerr:/app/config
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  jellyplex-watched:
+    image: luigi311/jellyplex-watched:latest
+    container_name: jellyplex_watched
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/London}
+      - DRYRUN=False
+      - DEBUG=False
+      - DEBUG_LEVEL=info
+      - SLEEP_DURATION=900                                   # Syncs every 15 minutes
+      - RUN_ONLY_ONCE=False
+      - SYNC_FROM_PLEX_TO_JELLYFIN=True
+      - SYNC_FROM_JELLYFIN_TO_PLEX=True
+      - PLEX_BASEURL=http://192.168.1.237:32400
+      - PLEX_TOKEN=${PLEX_TOKEN}
+      - JELLYFIN_BASEURL=http://192.168.1.237:8096
+      - JELLYFIN_TOKEN=${JELLYFIN_TOKEN}
+      - 'USER_MAPPING={"Magrizzly": "magrizzly", "Magoober": "Harry", "lrwpotter": "Lewis", "emilyymagee": "Emily", "TV": "Linda", "countc3": "CountCasper"}'
+      - 'LIBRARY_MAPPING={"TV Shows": "Shows"}'
+      - WHITELIST_USERS=Magrizzly,magrizzly,Magoober,Harry,lrwpotter,Lewis,emilyymagee,Emily,TV,Linda,countc3,CountCasper
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  requestrr:
+    image: darkalfx/requestrr:latest
+    container_name: requestrr
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Europe/London}
     ports:
-      - "5055:5055"
+      - "4545:4545"                                          # Telegram / Discord Bot Web Admin UI
     volumes:
-      - ${APPDATA_DIR:-/opt/docker/appdata}/jellyseerr:/config
+      - ${APPDATA_DIR:-/opt/docker/appdata}/requestrr:/root/config
     networks:
       - media_net
     restart: unless-stopped
 
   # ===========================================================================
-  # *ARR MEDIA AUTOMATION & DOWNLOADS
+  # PHOTO MANAGEMENT (IMMICH — SSD DB/THUMBS + VAULT STORAGE & EXTERNAL LIBRARY)
   # ===========================================================================
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    container_name: immich_server
+    depends_on:
+      - immich-redis
+      - immich-postgres
+    environment:
+      - TZ=${TZ:-Europe/London}
+      - DB_HOSTNAME=immich_postgres
+      - DB_USERNAME=${DB_USERNAME:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-mageemedia_immich_postgres}
+      - DB_DATABASE_NAME=${DB_DATABASE_NAME:-immich}
+      - REDIS_HOSTNAME=immich_redis
+    ports:
+      - "2283:2283"
+    volumes:
+      - ${VAULT_POOL:-/mnt/vault}/Media/Photos/Immich_Uploads:/usr/src/app/upload
+      - ${APPDATA_DIR:-/opt/docker/appdata}/immich/thumbs:/usr/src/app/upload/thumbs
+      - ${APPDATA_DIR:-/opt/docker/appdata}/immich/encoded-video:/usr/src/app/upload/encoded-video
+      - ${VAULT_POOL:-/mnt/vault}/Media/Photos:/mnt/vault/Media/Photos:ro # Read-Only External Library (Finished Years)
+      - /etc/localtime:/etc/localtime:ro
+    devices:
+      - /dev/dri:/dev/dri                                    # Hardware video transcoding via QuickSync
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    container_name: immich_machine_learning
+    environment:
+      - TZ=${TZ:-Europe/London}
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/immich/model-cache:/cache
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  immich-redis:
+    image: docker.io/valkey/valkey:8-bookworm
+    container_name: immich_redis
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  immich-postgres:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    container_name: immich_postgres
+    environment:
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-mageemedia_immich_postgres}
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
+      - POSTGRES_DB=${DB_DATABASE_NAME:-immich}
+      - POSTGRES_INITDB_ARGS=--data-checksums
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/immich/postgres:/var/lib/postgresql/data
+    networks:
+      - media_net
+    restart: unless-stopped
+
+  # ===========================================================================
+  # PROTONVPN WIREGUARD TUNNEL (GLUETUN) + DOWNLOADS & *ARR SUITE
+  # ===========================================================================
+  gluetun:
+    image: qmcgaw/gluetun:latest
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    ports:
+      - "8080:8080"                                          # qBittorrent Web UI (exposed via Gluetun)
+      - "9696:9696"                                          # Prowlarr Web UI (exposed via Gluetun)
+    environment:
+      - TZ=${TZ:-Europe/London}
+      - VPN_SERVICE_PROVIDER=custom
+      - VPN_TYPE=wireguard
+      - VPN_ENDPOINT_IP=${VPN_ENDPOINT_IP:-193.148.18.82}
+      - VPN_ENDPOINT_PORT=${VPN_ENDPOINT_PORT:-51820}
+      - WIREGUARD_PUBLIC_KEY=${WIREGUARD_PUBLIC_KEY:-R8Of+lrl8DgOQmO6kcjlX7SchP4ncvbY90MB7ZUNmD8=}
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:-}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-10.2.0.2/32}
+      - VPN_PORT_FORWARDING=on
+      - VPN_PORT_FORWARDING_PROVIDER=protonvpn
+      - VPN_PORT_FORWARDING_UP_COMMAND=/bin/sh -c 'wget -O- --retry-connrefused --post-data "json={\"listen_port\":{{PORTS}}}" http://127.0.0.1:8080/api/v2/app/setPreferences 2>&1'
+      - FIREWALL_OUTBOUND_SUBNETS=192.168.1.0/24,172.16.0.0/12
+    volumes:
+      - ${APPDATA_DIR:-/opt/docker/appdata}/gluetun:/gluetun
+    networks:
+      - media_net
+    restart: unless-stopped
+
   qbittorrent:
     image: lscr.io/linuxserver/qbittorrent:latest
     container_name: qbittorrent
+    network_mode: "service:gluetun"                          # 100% routed through ProtonVPN Kill Switch
+    depends_on:
+      - gluetun
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Europe/London}
       - WEBUI_PORT=8080
-    ports:
-      - "8080:8080"
-      - "6881:6881"
-      - "6881:6881/udp"
     volumes:
       - ${APPDATA_DIR:-/opt/docker/appdata}/qbittorrent:/config
       - ${INCOMPLETE_DIR:-/opt/docker/downloads/incomplete}:/incomplete # 1 TB SSD Incomplete Cache
       - ${MEDIA_POOL:-/mnt/media}/data/torrents:/data/torrents          # 28 TB Pool Completed Torrents
-    networks:
-      - media_net
     restart: unless-stopped
 
   prowlarr:
     image: lscr.io/linuxserver/prowlarr:latest
     container_name: prowlarr
+    network_mode: "service:gluetun"                          # Routed through ProtonVPN to bypass ISP tracker blocks
+    depends_on:
+      - gluetun
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Europe/London}
-    ports:
-      - "9696:9696"
     volumes:
       - ${APPDATA_DIR:-/opt/docker/appdata}/prowlarr:/config
-    networks:
-      - media_net
     restart: unless-stopped
 
   sonarr:
@@ -171,14 +298,13 @@ services:
       - "8686:8686"
     volumes:
       - ${APPDATA_DIR:-/opt/docker/appdata}/lidarr:/config
-      - ${MEDIA_POOL:-/mnt/media}/data/torrents:/data/torrents
-      - ${VAULT_POOL:-/mnt/vault}/Media/Music:/data/vault/Music
+      - ${MEDIA_POOL:-/mnt/media}/data:/data                 # Instant hardlinks: /data/torrents -> /data/media/Music
     networks:
       - media_net
     restart: unless-stopped
 
   readarr:
-    image: lscr.io/linuxserver/readarr:develop
+    image: lscr.io/linuxserver/readarr:0.4.18-develop
     container_name: readarr
     environment:
       - PUID=${PUID:-1000}
@@ -188,8 +314,7 @@ services:
       - "8787:8787"
     volumes:
       - ${APPDATA_DIR:-/opt/docker/appdata}/readarr:/config
-      - ${MEDIA_POOL:-/mnt/media}/data/torrents:/data/torrents
-      - ${VAULT_POOL:-/mnt/vault}/Media/Audio:/data/vault/Audio
+      - ${MEDIA_POOL:-/mnt/media}/data:/data                 # Instant hardlinks: /data/torrents -> /data/media/Audio
     networks:
       - media_net
     restart: unless-stopped
@@ -243,7 +368,12 @@ services:
     environment:
       - TZ=${TZ:-Europe/London}
     volumes:
-      - ${APPDATA_DIR:-/opt/docker/appdata}/unbound:/opt/unbound/etc/unbound/custom.conf.d:ro
+      - ${APPDATA_DIR:-/opt/docker/appdata}/unbound/pi-hole.conf:/opt/unbound/etc/unbound/unbound.conf:ro
+    healthcheck:
+      test: ["CMD", "drill", "-p", "5335", "@127.0.0.1", "cloudflare.com"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       dns_net:
         ipv4_address: 172.20.0.2

@@ -9,16 +9,20 @@
    browseable = yes
    read only = no
    guest ok = no
+   valid users = charlie
    create mask = 0664
    directory mask = 0775
-   force user = magee
+   force user = charlie
+   force group = charlie
 
 [Vault]
-   comment = MageeMedia 3TB Btrfs RAID 1 Vault (Photos, Music, Audio, Backups)
+   comment = MageeMedia 4TB Btrfs Vault (Photos, Music, Audio, Backups)
    path = /mnt/vault
    browseable = yes
    read only = no
    guest ok = no
+   valid users = charlie
    create mask = 0664
    directory mask = 0775
-   force user = magee
+   force user = charlie
+   force group = charlie
