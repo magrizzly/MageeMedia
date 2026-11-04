@@ -75,15 +75,20 @@ Want to watch a film or TV series that isn't on the server yet? You can request 
 
 ---
 
-## 4. Immich (Photos & Backup)
+## 4. Immich (Photos & Camera Roll Backup)
 
 For family photo sharing and automatic phone camera roll backups:
 
-* **Mobile App:** Download **Immich** from the App Store or Google Play Store.
-* **Server Endpoint:**
-  * When on home Wi-Fi: `http://192.168.1.237:2283`
-  * When remote: Connect via Tailscale to `http://100.122.206.39:2283`
-* **Sign In:** Use your assigned Immich account credentials.
+* **Mobile App:** Download **Immich** from the App Store or Google Play Store:
+  * **iOS:** [Immich on Apple App Store](https://apps.apple.com/app/immich/id1613945652)
+  * **Android:** [Immich on Google Play](https://play.google.com/store/apps/details?id=app.alextran.immich)
+* **Server Endpoint URL:**
+  ```text
+  https://mageemedia.tailcc77cc.ts.net:10000
+  ```
+  *(Works anywhere on 5G / cellular data without needing a VPN!)*
+* **Home Wi-Fi Alternative:** `http://192.168.1.237:2283`
+* **Sign In:** Use your personal Immich email/username and password.
 
 ---
 
