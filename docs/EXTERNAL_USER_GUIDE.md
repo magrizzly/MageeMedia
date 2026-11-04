@@ -63,7 +63,8 @@ If you already use Plex or have an older smart TV with a built-in Plex app:
 
 Want to watch a film or TV series that isn't on the server yet? You can request it directly:
 
-* **Internal / Tailscale URL:** `http://192.168.1.237:5055`
+* **Public Web URL:** **[https://mageemedia.tailcc77cc.ts.net:8443](https://mageemedia.tailcc77cc.ts.net:8443)**
+* **Home Wi-Fi URL:** `http://192.168.1.237:5055`
 * **How to Sign In:**
   * Click **Sign in with Jellyfin** (or **Sign in with Plex** if you use Plex).
   * Use your existing Jellyfin/Plex credentials.

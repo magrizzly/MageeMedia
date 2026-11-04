@@ -71,6 +71,7 @@ flowchart TB
 | **Tautulli** | `http://192.168.1.237:8181` | Plex monitoring, analytics, and newsletters |
 | **qBittorrent (via ProtonVPN Gluetun)** | `http://192.168.1.237:8080` | Torrent client routed 100% through ProtonVPN WireGuard + NAT-PMP port forwarding |
 | **Prowlarr (via ProtonVPN Gluetun)** | `http://192.168.1.237:9696` | Centralized indexer manager routed through ProtonVPN to bypass ISP blocks |
+| **FlareSolverr** | `http://192.168.1.237:8191` | Cloudflare / DDoS challenge solver proxy for Prowlarr indexers |
 | **Sonarr** | `http://192.168.1.237:8989` | Automated TV & Anime series management |
 | **Radarr** | `http://192.168.1.237:7878` | Automated Film management |
 | **Lidarr** | `http://192.168.1.237:8686` | Automated Music management |

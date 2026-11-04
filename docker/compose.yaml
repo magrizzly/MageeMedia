@@ -247,12 +247,27 @@ services:
     network_mode: "service:gluetun"                          # Routed through ProtonVPN to bypass ISP tracker blocks
     depends_on:
       - gluetun
+      - flaresolverr
     environment:
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
       - TZ=${TZ:-Europe/London}
     volumes:
       - ${APPDATA_DIR:-/opt/docker/appdata}/prowlarr:/config
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+      - TZ=${TZ:-Europe/London}
+    ports:
+      - "8191:8191"
+    networks:
+      - media_net
     restart: unless-stopped
 
   sonarr:
