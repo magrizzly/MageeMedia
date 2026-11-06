@@ -10,20 +10,23 @@ This document details all recurring background tasks, cron jobs, systemd timers,
 flowchart TD
     T00["00:00 (Midnight) — Jellyfin Art Rotation<br/>Rotates Primary library card artwork from Custom Art folder"]
     T01["01:51 AM — Ubuntu Package Check<br/>apt-daily.timer checks for new security patches"]
+    T02["02:00 AM–06:00 AM — qBittorrent Night-Boost Window<br/>Increases active seeding slots (5 → 15 uploads, 8 → 20 total)"]
     T03["03:30 AM — Nightly Backup & SnapRAID Maintenance<br/>1. AppData (1 TB SSD) → 4 TB Btrfs Vault<br/>2. 4 TB Vault → 28 TB MergerFS Pool Mirror<br/>3. SnapRAID Parity Sync (all 3× 14 TB drives)<br/>4. SnapRAID Bit-Rot Scrub (5% sample > 30 days old)"]
-    T06["06:15 AM — Unattended Security Upgrades<br/>apt-daily-upgrade.timer applies verified Ubuntu updates"]
+    T06["06:00 AM — Daytime Seeding Cap Restored & Unattended Upgrades<br/>Restores daytime seeding limits (5 uploads / 8 total) & applies Ubuntu patches"]
 
-    T00 --> T01 --> T03 --> T06
+    T00 --> T01 --> T02 --> T03 --> T06
 ```
 
 ---
 
-## 2. High-Frequency & Continuous Tasks (Docker Services)
+## 2. High-Frequency & Continuous Tasks (Docker Services & Cron)
 
 | Service / Process | Interval | Description | Log / Monitoring Location |
 | :--- | :--- | :--- | :--- |
+| **`qbittorrent-seeding-manager.py`** | **Every 1 minute** | Smart seeding & queue manager (`charlie` user cron).<br>• **Daytime (06:00–02:00):** 5 active uploads, 4 downloads, 8 total.<br>• **Night Boost (02:00–06:00):** 15 active uploads, 10 downloads, 20 total.<br>• **Ignore Slow/Stalled:** `dont_count_slow_torrents=True` (< 5 KB/s for 60s) so idle `stalledUP` torrents never waste active slots.<br>• **True Active Seeding Time:** Tracks only real uploading time (`state=uploading` & `upspeed >= 1 KB/s`, ignoring `stalledUP`/`queuedUP`) and pauses torrents at **7 days of active uploading** or **Ratio 2.0**. | `/opt/docker/appdata/qbittorrent/active_seeding_tracker.json` |
 | **`jellyplex_watched`** | **Every 15 minutes** | Continuous 2-way watch sync between Plex and Jellyfin. Synchronizes watched status, play counts, and "Continue Watching" playback timestamps for all 6 accounts (`magrizzly`, `Harry`, `Lewis`, `Emily`, `Linda`, `CountCasper`). | `docker logs -f jellyplex_watched` |
 | **ProtonVPN Port Sync** | **Continuous / Event-driven** | NAT-PMP port forward handler inside `gluetun`. Automatically pushes dynamically assigned incoming torrent ports to `qBittorrent`'s Web API. | `docker logs -f gluetun` |
+| **Sonarr `anime-all-seasons.sh`** | **Event-driven (`On Series Add`)** | Custom script hook in Sonarr (`/config/scripts/anime-all-seasons.sh`). When an anime is requested via Seerr, automatically enables Season Folders, monitors all aired seasons, and triggers a full `SeriesSearch` across all seasons. | Sonarr ➔ System ➔ Events |
 | **`*arr` Indexer Sync** | **Every 15–30 minutes** | Sonarr, Radarr, Lidarr, and Readarr poll Prowlarr indexer RSS feeds for requested content. | Web UIs (`:8989`, `:7878`, `:8686`, `:8787`) |
 | **`sysstat-collect`** | **Every 10 minutes** | Gathers CPU, memory, and disk I/O metrics for host performance graphs in Cockpit. | Cockpit (`https://192.168.1.237:9090`) |
 
