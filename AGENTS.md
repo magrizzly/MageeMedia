@@ -12,11 +12,11 @@ This file provides complete context for AI agents (Antigravity) when opening thi
   * Docker, Docker Compose, Tailscale (Subnet Router pre-configured), MergerFS, SnapRAID, Btrfs, Samba, and Cockpit (`https://192.168.1.237:9090`) installed.
 * **Phase 3 & 4 (14 TB Pool + 4 TB Btrfs Vault + Media Evacuation): COMPLETE**
   * 3× 14 TB Toshiba (`sda1`=`disk1`, `sdc1`=`disk2`, `sdd1`=`parity1`) formatted (`ext4 -m 0 -T largefile4`) and pooled via MergerFS at `/mnt/media` (28 TB / 26 TiB usable).
-  * 4 TB Seagate (`sdf1`=`Vault`) formatted as Btrfs (`/mnt/vault`) with `zstd:3` compression and `DUP` metadata checksums.
+  * 4 TB Seagate (`sde1`=`Vault`) formatted as Btrfs (`/mnt/vault`) with `zstd:3` compression and `DUP` metadata checksums.
   * All media evacuated and verified (`Films` 1.1 TB, `TV` 1.7 TB, `Anime` 999 GB, `Music` 23 GB, `Audio` 1.3 GB, `Custom Art` 592 MB on `/mnt/media/data/media`; `Photos` 260 GB and `docker-appdata` backup 60 GB on `/mnt/vault`).
-  * Both the **3 TB WD Blue (`sde`)** and **64 GB SanDisk SSD (`sdg`)** are cleanly unmounted and ready to be physically unplugged as an offline cold backup.
+  * Both the **3 TB WD Blue (`WD-WCC4N7KRH2J2`)** and **64 GB SanDisk SSD (`134728400405`)** have been physically removed, cables tidied, and the server relocated to its permanent home in the loft.
 * **Phase 5 (Docker Stack Launch & Plex SQLite Path Remap): COMPLETE**
-  * All 21 containers in `/opt/docker/compose.yaml` are up and healthy (including `Plex`, `Jellyfin`, `JellyPlex-Watched` 2-way watch sync, `Immich`, `Gluetun` ProtonVPN + NAT-PMP for `qBittorrent` & `Prowlarr`, `Requestrr`, `Seerr` (migrated from deprecated Jellyseerr), `Tautulli`, `Pi-hole v6`, `Unbound`, and the `*arr` suite).
+  * All 22 containers in `/opt/docker/compose.yaml` are up and healthy (including `Plex`, `Jellyfin`, `JellyPlex-Watched` 2-way watch sync, `Immich`, `Gluetun` ProtonVPN + NAT-PMP for `qBittorrent` & `Prowlarr`, `FlareSolverr`, `Requestrr`, `Seerr` (migrated from deprecated Jellyseerr), `Tautulli`, `Pi-hole v6`, `Unbound`, and the `*arr` suite).
   * `com.plexapp.plugins.library.db` paths directly updated from Windows `D:\` & `E:\` to `/data/media/*` & `/data/vault/*` via `scripts/remap-plex-paths.sh`.
 
 ---
@@ -33,9 +33,7 @@ This file provides complete context for AI agents (Antigravity) when opening thi
 | **`SATA6G_2` (`sdb`)** | Innodisk `DES25-01TDK1KCCQL` (`BCA12211160180004`) | 1 TB | **Tier 1 (`/` & `/opt/docker`):** Ubuntu OS, Docker AppData, Immich DB/Thumbs, Incomplete Torrent Cache |
 | **`SATA6G_3` (`sdc`)** | Toshiba `MG07ACA14TE` (`Y8X0A0EKF94G`) | 14 TB | **Tier 2 (`/mnt/disk2`):** MergerFS Data Disk 2 |
 | **`SATA6G_4` (`sdd`)** | Toshiba `MG07ACA14TE` (`X860A026F94G`) | 14 TB | **Tier 2 (`/mnt/parity1`):** SnapRAID Parity Disk (protects 28 TB Pool + Vault Mirror) |
-| **`SATA6G_5` (`sde`)** | WDC `WD30EZRZ-00Z5HB0` (`WD-WCC4N7KRH2J2`) | 3 TB | **Unmounted** → Ready to unplug as Offline Cold Backup |
-| **`SATA6G_6` (`sdf`)** | Seagate `ST4000DM004-2CV104` (`WFN6GEFD`) | 4 TB | **Tier 3 (`/mnt/vault`):** 4 TB Btrfs Vault |
-| **`SATA6G_E2` (`sdg`)** | SanDisk `SDSSDHP064G` (`134728400405`) | 64 GB | **Unmounted** → Old Windows 10 `C:` drive, ready to unplug |
+| **`SATA6G_6` (`sde`)** | Seagate `ST4000DM004-2CV104` (`WFN6GEFD`) | 4 TB | **Tier 3 (`/mnt/vault`):** 4 TB Btrfs Vault |
 
 ---
 
