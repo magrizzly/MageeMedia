@@ -9,9 +9,7 @@ LABEL=parity1  /mnt/parity1  ext4      defaults,noatime,nofail    0 2
 
 # --- Tier 2 Pool: MergerFS (28 TB Usable Pool at /mnt/media) ---
 # cache.files=partial + dropcacheonclose=true + category.create=mfs supports hardlinks & *arr atomic moves
-/mnt/disk*     /mnt/media    mergerfs  defaults,nonempty,allow_other,use_ino,cache.files=partial,dropcacheonclose=true,category.create=mfs,moveonenospc=true,minfreespace=50G,fsname=mergerfs  0 0
+/mnt/disk*     /mnt/media    mergerfs  defaults,nonempty,allow_other,use_ino,cache.files=partial,dropcacheonclose=true,category.create=mfs,moveonenospc=true,minfreespace=50G,fsname=mergerfs,x-systemd.requires=/mnt/disk1,x-systemd.requires=/mnt/disk2,nofail  0 0
 
 # --- Tier 3: 4 TB Seagate Btrfs Vault (at /mnt/vault, mirrored nightly to /mnt/media/Backups/vault-mirror) ---
-# Uncomment after evacuating old NTFS D: & E: drives and running:
-# sudo mkfs.btrfs -L Vault -m dup -f /dev/sdf1
-# LABEL=Vault  /mnt/vault    btrfs     defaults,noatime,compress=zstd:3,nofail  0 0
+LABEL=Vault    /mnt/vault    btrfs     defaults,noatime,compress=zstd:3,nofail  0 0

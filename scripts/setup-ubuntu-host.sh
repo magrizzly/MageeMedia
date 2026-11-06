@@ -100,4 +100,13 @@ if ! grep -q "^\[Media\]" /etc/samba/smb.conf; then
     systemctl restart smbd nmbd || true
 fi
 
+# 10. Ensure Docker & Samba wait for MergerFS (/mnt/media) and Btrfs Vault (/mnt/vault) on cold boot
+mkdir -p /etc/systemd/system/docker.service.d /etc/systemd/system/smbd.service.d
+cat << 'EOF' | tee /etc/systemd/system/docker.service.d/wait-for-mounts.conf /etc/systemd/system/smbd.service.d/wait-for-mounts.conf > /dev/null
+[Unit]
+Wants=mnt-disk1.mount mnt-disk2.mount mnt-parity1.mount mnt-media.mount mnt-vault.mount
+After=mnt-disk1.mount mnt-disk2.mount mnt-parity1.mount mnt-media.mount mnt-vault.mount
+EOF
+systemctl daemon-reload
+
 echo "=== Host setup complete! Cockpit is available at https://192.168.1.237:9090 ==="

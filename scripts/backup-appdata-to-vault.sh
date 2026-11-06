@@ -23,6 +23,7 @@ rsync -a --delete \
     --exclude='jellyfin/transcodes/' \
     --exclude='immich/thumbs/' \
     --exclude='immich/encoded-video/' \
+    --exclude='qbittorrent/qBittorrent/ipc-socket' \
     "$APPDATA_SRC/" "$VAULT_BACKUP_DST/"
 
 echo "[$(date -Is)] [2/4] Mirroring 4 TB Btrfs Vault (/mnt/vault) onto 28 TB Toshiba Pool ($POOL_VAULT_MIRROR)..."
