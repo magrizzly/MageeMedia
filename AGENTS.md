@@ -15,9 +15,10 @@ This file provides complete context for AI agents (Antigravity) when opening thi
   * 4 TB Seagate (`sde1`=`Vault`) formatted as Btrfs (`/mnt/vault`) with `zstd:3` compression and `DUP` metadata checksums.
   * All media evacuated and verified (`Films` 1.1 TB, `TV` 1.7 TB, `Anime` 999 GB, `Music` 23 GB, `Audio` 1.3 GB, `Custom Art` 592 MB on `/mnt/media/data/media`; `Photos` 260 GB and `docker-appdata` backup 60 GB on `/mnt/vault`).
   * Both the **3 TB WD Blue (`WD-WCC4N7KRH2J2`)** and **64 GB SanDisk SSD (`134728400405`)** have been physically removed, cables tidied, and the server relocated to its permanent home in the loft.
-* **Phase 5 (Docker Stack Launch & Plex SQLite Path Remap): COMPLETE**
+* **Phase 5 (Docker Stack Launch, Plex SQLite Path Remap & Full Service Wiring): COMPLETE**
   * All 22 containers in `/opt/docker/compose.yaml` are up and healthy (including `Plex`, `Jellyfin`, `JellyPlex-Watched` 2-way watch sync, `Immich`, `Gluetun` ProtonVPN + NAT-PMP for `qBittorrent` & `Prowlarr`, `FlareSolverr`, `Requestrr`, `Seerr` (migrated from deprecated Jellyseerr), `Tautulli`, `Pi-hole v6`, `Unbound`, and the `*arr` suite).
-  * `com.plexapp.plugins.library.db` paths directly updated from Windows `D:\` & `E:\` to `/data/media/*` & `/data/vault/*` via `scripts/remap-plex-paths.sh`.
+  * `com.plexapp.plugins.library.db` paths directly updated from Windows `D:\` & `E:\` to `/data/media/*` & `/data/vault/*` via `scripts/remap-plex-paths.sh`, and `autoEmptyTrash="1"` re-enabled in `Preferences.xml`.
+  * All `*arr` apps (`Radarr`, `Sonarr`, `Lidarr`, `Readarr`) are wired to `Prowlarr` indexers and `qBittorrent` (`gluetun:8080`, with subnet whitelist `172.16.0.0/12, 192.168.1.0/24` enabled), `Bazarr` is configured with a default `English` subtitle profile and providers (`opensubtitlescom`, `podnapisi`, `gestdown`, `yifysubtitles`), `Seerr` is linked to `Jellyfin`, `Radarr`, and `Sonarr` with all 6 users imported, and `Requestrr` is pre-wired to `Seerr`, `Radarr`, and `Sonarr`.
 
 ---
 

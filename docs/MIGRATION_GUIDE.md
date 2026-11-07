@@ -35,14 +35,14 @@ Executed automatically by [`scripts/run-media-migration.sh`](../scripts/run-medi
 
 ---
 
-## Phase 5: Docker Stack Launch & Final Configuration
+## Phase 5: Docker Stack Launch & Final Configuration (Completed)
 1. **Containers (`/opt/docker/compose.yaml`):**
-   * **Plex**, **Jellyfin**, **Tautulli**, **Seerr** (formerly Jellyseerr), **Requestrr** (Telegram/Discord bot), **Immich** (Server, ML, Redis, Postgres), **Gluetun** (ProtonVPN WireGuard + NAT-PMP) routing **qBittorrent** & **Prowlarr**, **Sonarr**, **Radarr**, **Lidarr**, **Readarr**, **Bazarr**, **Pi-hole v6**, and **Unbound**.
-2. **Update Plex Library Folder Paths (`http://192.168.1.237:32400/web`):**
+   * **Plex**, **Jellyfin**, **JellyPlex-Watched**, **Tautulli**, **Seerr** (formerly Jellyseerr), **Requestrr** (Telegram/Discord bot), **Immich** (Server, ML, Redis, Postgres), **Gluetun** (ProtonVPN WireGuard + NAT-PMP) routing **qBittorrent** & **Prowlarr**, **FlareSolverr**, **Sonarr**, **Radarr**, **Lidarr**, **Readarr**, **Bazarr**, **Pi-hole v6**, and **Unbound**.
+2. **Plex Library Folder Paths (`http://192.168.1.237:32400/web`):**
    * **Movies** → `/data/media/Films`
    * **TV Shows** → `/data/media/TV`
    * **Anime** → `/data/media/Anime`
    * **Photos** → `/data/vault/Photos/Finished Years`
-   * **Music** → `/data/vault/Music`
-   * **Audio Books** → `/data/vault/Audio`
-   *(Wait for Plex to scan and match all items before removing old `D:\` and `E:\` paths and re-enabling "Empty trash automatically").*
+   * **Music** → `/data/media/Music`
+   * **Audio Books** → `/data/media/Audio`
+   *(Remapped in SQLite via `scripts/remap-plex-paths.sh` and re-enabled `autoEmptyTrash="1"` in `Preferences.xml`).*
